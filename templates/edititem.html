@@ -1,0 +1,22 @@
+
+<html>
+
+    <body>
+
+    <!-- INSERT YOUR CODE HERE -->
+
+        <!--<form action= "#" method = 'POST'>-->
+        <form action= "{{url_for('editItem', category_id=category_id, item_id=item.id)}}" method = 'POST'>
+            <p>Name:</p>
+            <input type = 'text' size='30' name = 'name' placeholder = '{{item.name}}'>
+            <p>Description:</p>
+            <input type = 'text' size='30' name = 'description' placeholder = '{{item.description}}'>
+            <br><hr>
+
+            <input type='submit' value='Edit'>
+        </form>
+        <a href="{{url_for('item', category_id=category_id, item_id=item.id)}}">Cancel</a>
+
+    </body>
+
+</html>
