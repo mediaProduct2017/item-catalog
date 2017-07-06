@@ -3,7 +3,7 @@
 # vagrant
 
 from flask import Flask, render_template, url_for, request, redirect, flash, jsonify
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, Category, Item
 
@@ -20,7 +20,23 @@ session = DBSession()
 @app.route('/catalog/')
 def categoryAll():
     categories = session.query(Category).all()
-    return render_template('categories.html', categories=categories)
+    items = session.query(Item).order_by(desc(Item.id)).limit(5).all()
+    return render_template('categories.html', categories=categories, items=items)
+
+@app.route('/catalog/JSON')
+def categoryAllJSON():
+    temp_l = list()
+    temp = dict()
+    categories = session.query(Category).all()
+    for i in categories:
+        items = session.query(Item).filter_by(
+            category_id=i.id).order_by(desc(Item.id)).all()
+        temp['Category'] = {'name': i.name, 'id': i.id}
+        temp['Items'] = [j.serialize for j in items]
+        # print temp
+        temp_l.append(temp.copy())
+    # return jsonify(temp_l)
+    return jsonify(Categories=temp_l)
 
 @app.route('/catalog/<int:category_id>/')
 def category(category_id):
@@ -33,10 +49,10 @@ def category(category_id):
 
 @app.route('/catalog/<int:category_id>/JSON')
 def categoryItemJSON(category_id):
-    # category = session.query(Category).filter_by(id=category_id).one()
+    category = session.query(Category).filter_by(id=category_id).one()
     items = session.query(Item).filter_by(
         category_id=category_id).all()
-    return jsonify(Items=[i.serialize for i in items])
+    return jsonify(Category=category.name, Items=[i.serialize for i in items])
     # return jsonify(Items=[i.serialize() for i in items]) # TypeError: 'dict' object is not callable
 
 @app.route('/catalog/<int:category_id>/<int:item_id>')
@@ -49,7 +65,7 @@ def item(category_id, item_id):
 @app.route('/catalog/<int:category_id>/<int:item_id>/JSON')
 def itemJSON(category_id, item_id):
     item = session.query(Item).filter_by(id=item_id).one()
-    return jsonify(Items=item.serialize)
+    return jsonify(Item=item.serialize)
 
 @app.route('/catalog/newcategory', methods=['GET', 'POST'])
 def newCategory():

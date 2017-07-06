@@ -2,30 +2,41 @@
 
     <body>
 
-        {% for i in categories %}
+        <nav>
 
-            <h2>{{i.name}}</h2>
+            {% for i in categories %}
 
-            <a href="{{url_for('category', category_id = i.id)}}">Enter the category</a>
+                <h2>
+                    <a href="{{url_for('category', category_id = i.id)}}">{{i.name}}</a>
+                </h2>
+
+            {% endfor %}
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+
+                    <ul>
+                        {% for message in messages %}
+                            <li><strong>{{message}}</strong></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+            <a href="{{url_for('newCategory')}}">Add a new category</a>
 
             <br><br>
+        </nav>
 
-        {% endfor %}
-
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-
-                <ul>
-                    {% for message in messages %}
-                        <li><strong>{{message}}</strong></li>
-                    {% endfor %}
-                </ul>
+        <section>
+            {% if items %}
+                <header>Latest items</header>
             {% endif %}
-        {% endwith %}
 
-        <a href="{{url_for('newCategory')}}">Add a new category</a>
-
-        <br><br>
+            {% for i in items %}
+                <p>{{i.name}}</p>
+            {% endfor %}
+        </section>
 
     </body>
 
