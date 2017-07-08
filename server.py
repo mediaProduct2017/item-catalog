@@ -64,13 +64,15 @@ def log_in():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        print password
+        # print password
         if username is None or password is None:
-            abort(400) # missing arguments but '' counts
+            abort(400)  # missing arguments but '' counts
         the_user = session.query(User).filter_by(username=username).first()
         if the_user is not None and the_user.verify_password(password):
             login_session['username'] = username
             flash("logged in as '%s'!" % username)
+        else:
+            flash("wrong user name or password!")
         return redirect(url_for('categoryAll'))
     else:
         return render_template('login.html')
