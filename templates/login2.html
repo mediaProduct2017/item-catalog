@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!-- This file is useless for this project -->
+
+<html>
+    <head>
+
+<!--LOAD PRE-REQUISITES FOR GOOGLE SIGN IN -->
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">
+        </script>
+
+        <script src="//apis.google.com/js/platform.js?onload=start"></script>
+<!-- the will insert a script/function into the DOM structure of the html file -->
+<!-- the script/function will communicate with google API -->
+
+<!-- END PRE-REQUISITES FOR GOOGLE SIGN IN -->
+
+
+    </head>
+
+
+    <body>
+
+
+<!-- GOOGLE PLUS SIGN IN BUTTON-->
+
+        <form action= "{{url_for('new_user')}}" method = 'POST'>
+            User name:
+            <input type = 'text' size='30' name = 'username'>
+            Password:
+            <input type = 'password' size='30' name = 'password'>
+            <br><hr>
+
+            <input type='submit' value='Sign up'>
+        </form>
+          
+        <div id="signInButton">
+        <span class="g-signin"
+        data-scope="openid email"
+        data-clientid="YOUR_CLIENT_ID_GOES_HERE.apps.googleusercontent.com"
+        data-redirecturi="postmessage"
+        data-accesstype="offline"
+        data-cookiepolicy="single_host_origin"
+        data-callback="signInCallback"
+        data-approvalprompt="force">
+        <!-- related to the one time use code transferred by google -->
+        <!--The scopes of the uri that can access the cookie; the website has no sub-domains-->
+        <!--This callback function will get the the one time use code and access token-->
+        <!--The user has to log in each time when accessing the login page; it should be disabled in production-->
+
+        </span>
+        </div>
+
+<!--END GOOGLE PLUS SIGN IN BUTTON -->
+
+    </body>
+
+</html>

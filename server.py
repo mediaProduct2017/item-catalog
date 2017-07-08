@@ -2,10 +2,11 @@
 # vitualenv at tensorflow
 # vagrant
 
-from flask import Flask, render_template, url_for, request, redirect, flash, jsonify
+from flask import Flask, render_template, url_for, request, redirect, flash, jsonify, abort
+from flask import session as login_session
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
-from database_setup import Base, Category, Item
+from database_setup import Base, Category, Item, User
 
 app = Flask(__name__)
 
@@ -23,6 +24,7 @@ def categoryAll():
     items = session.query(Item).order_by(desc(Item.id)).limit(5).all()
     return render_template('categories.html', categories=categories, items=items)
 
+
 @app.route('/catalog/JSON')
 def categoryAllJSON():
     temp_l = list()
@@ -38,6 +40,42 @@ def categoryAllJSON():
     # return jsonify(temp_l)
     return jsonify(Categories=temp_l)
 
+
+@app.route('/users/new', methods=['GET', 'POST'])
+def new_user():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username is None or password is None:
+            abort(400) # missing arguments but '' counts
+        if session.query(User).filter_by(username=username).first() is not None:
+            abort(400) # existing user
+        user = User(username = username)
+        user.hash_password(password)
+        session.add(user)
+        session.commit()
+        return redirect(url_for('log_in'))
+    else:
+        return render_template('login.html')
+
+
+@app.route('/users/login', methods=['GET', 'POST'])
+def log_in():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        print password
+        if username is None or password is None:
+            abort(400) # missing arguments but '' counts
+        the_user = session.query(User).filter_by(username=username).first()
+        if the_user is not None and the_user.verify_password(password):
+            login_session['username'] = username
+            flash("logged in as '%s'!" % username)
+        return redirect(url_for('categoryAll'))
+    else:
+        return render_template('login.html')
+
+
 @app.route('/catalog/<int:category_id>/')
 def category(category_id):
     category = session.query(Category).filter_by(id=category_id).one()
@@ -47,6 +85,7 @@ def category(category_id):
     # return render_template('categoryitems.html', category=category)
     return render_template('categoryitems.html', category=category, items=items)
 
+
 @app.route('/catalog/<int:category_id>/JSON')
 def categoryItemJSON(category_id):
     category = session.query(Category).filter_by(id=category_id).one()
@@ -55,6 +94,7 @@ def categoryItemJSON(category_id):
     return jsonify(Category=category.name, Items=[i.serialize for i in items])
     # return jsonify(Items=[i.serialize() for i in items]) # TypeError: 'dict' object is not callable
 
+
 @app.route('/catalog/<int:category_id>/<int:item_id>')
 def item(category_id, item_id):
     the_item = session.query(Item).filter_by(id=item_id).one()
@@ -62,10 +102,12 @@ def item(category_id, item_id):
     # return render_template('item.html', category_id=category_id, item_id=item_id, item=the_item)
     return render_template('item.html', item=the_item)
 
+
 @app.route('/catalog/<int:category_id>/<int:item_id>/JSON')
 def itemJSON(category_id, item_id):
     item = session.query(Item).filter_by(id=item_id).one()
     return jsonify(Item=item.serialize)
+
 
 @app.route('/catalog/newcategory', methods=['GET', 'POST'])
 def newCategory():
@@ -78,6 +120,7 @@ def newCategory():
         return redirect(url_for('categoryAll'))
     else:
         return render_template('newcategory.html')
+
 
 @app.route('/catalog/<int:category_id>/newitem', methods=['GET', 'POST'])
 def newItem(category_id):
@@ -99,6 +142,7 @@ def editMenuItem(restaurant_id, menu_id):
     return "page to edit a menu item. Task 2 complete!"    
 '''
 
+
 @app.route('/catalog/<int:category_id>/<int:item_id>/edit', methods=['GET', 'POST'])
 def editItem(category_id, item_id):
     editedItem = session.query(Item).filter_by(id=item_id).one()
@@ -117,7 +161,20 @@ def editItem(category_id, item_id):
         # SHOULD USE IN YOUR EDITMENUITEM TEMPLATE
         return render_template('edititem.html', category_id=category_id, item_id=item_id, item=editedItem)
 
-@app.route('/restaurants/<int:category_id>/<int:item_id>/delete/', methods=['GET', 'POST'])
+@app.route('/catalog/<int:category_id>/delete/', methods=['GET', 'POST'])
+def deleteCategory(category_id):
+    deletedCat = session.query(Category).filter_by(id=category_id).one()
+    if request.method == 'POST':
+        if deletedCat:
+            session.delete(deletedCat)
+            session.commit()
+            flash("category deleted!")
+            return redirect(url_for('categoryAll'))
+    else:
+        return render_template('deletecat.html', category=deletedCat)
+
+
+@app.route('/catalog/<int:category_id>/<int:item_id>/delete/', methods=['GET', 'POST'])
 def deleteItem(category_id, item_id):
     deletedItem = session.query(Item).filter_by(id=item_id).one()
     if request.method == 'POST':

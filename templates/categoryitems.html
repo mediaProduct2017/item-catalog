@@ -21,6 +21,10 @@
 
         <a href="{{url_for('newItem', category_id = category.id)}}">Add a new item</a>
 
+        <br>
+
+        <a href = "{{url_for('deleteCategory', category_id=category.id)}}">Delete the category</a>
+
         <br><br>
 
         <!--<header>All the items</header>-->
