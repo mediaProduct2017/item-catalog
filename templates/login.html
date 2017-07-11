@@ -15,10 +15,10 @@
     </head>
 
 
-<body>  
+    <body>
 
 
-<!-- GOOGLE PLUS SIGN IN BUTTON-->
+    <!-- GOOGLE PLUS SIGN IN BUTTON-->
         <form action= "{{url_for('new_user')}}" method = 'POST'>
             User name:
             <input type = 'text' size='30' name = 'username'>
@@ -46,7 +46,7 @@
         <div id="signInButton">
             <span class="g-signin"
             data-scope="openid email"
-            data-clientid="YOUR_CLIENT_ID_GOES_HERE.apps.googleusercontent.com"
+            data-clientid="580863484378-vahbst5pe78c7j65itli8ek0ngqk3tel.apps.googleusercontent.com"
             data-redirecturi="postmessage"
             data-accesstype="offline"
             data-cookiepolicy="single_host_origin"
@@ -55,8 +55,48 @@
             </span>
         </div>
 
-<!--END GOOGLE PLUS SIGN IN BUTTON -->
+        <div id="result"></div>
 
-  </body>
+        <script>
+            function signInCallback(authResult) {
+            // authResult is received from the google plus server
+              if (authResult['code']) {
 
-  </html>
+                // Hide the sign-in button now that the user is authorized
+                $('#signinButton').attr('style', 'display: none');
+
+                // Send the one-time-use code to the server, if the server responds, write a 'login successful' message to the web page and then redirect back to the main restaurants page
+                $.ajax({
+                  type: 'POST',
+                  url: '/gconnect?state={{STATE}}',
+                  processData: false,
+                  data: authResult['code'],
+                  contentType: 'application/octet-stream; charset=utf-8',
+                  success: function(result) {
+                    // Handle or verify the server response if necessary.
+                    // here result is the response from the backend
+                    if (result) {
+                      $('#result').html('Login Successful!</br>'+ result + '</br>Redirecting...')
+                     setTimeout(function() {
+                      window.location.href = "/catalog/";
+                     }, 4000);
+
+
+                  } else if (authResult['error']) {
+
+                console.log('There was an error: ' + authResult['error']);
+              } else {
+                    $('#result').html('Failed to make a server-side call. Check your configuration and console.');
+                     }
+
+                  }
+
+              }); } }
+        </script>
+
+
+    <!--END GOOGLE PLUS SIGN IN BUTTON -->
+
+    </body>
+
+</html>
