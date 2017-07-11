@@ -1,0 +1,26 @@
+
+<html>
+    
+    <body>
+
+        <h1>{{item.name}}</h1>
+
+        <p>{{item.description}}</p>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+
+                <ul>
+                    {% for message in messages %}
+                        <li><strong>{{message}}</strong></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+
+        <a href = "{{url_for('category', category_id=item.category_id)}}">Return to the category</a>
+
+    </body>
+
+</html>

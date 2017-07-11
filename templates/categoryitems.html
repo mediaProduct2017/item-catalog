@@ -30,7 +30,7 @@
         <!--<header>All the items</header>-->
 
         {% for i in items %}
-        <h2>{{i.name}}</h2>
+        <h2><a href="{{url_for('item', category_id=category.id, item_id = i.id)}}">{{i.name}}</a></h2>
 
             <div>
 
