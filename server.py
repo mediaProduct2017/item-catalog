@@ -4,6 +4,7 @@
 
 from flask import Flask, render_template, url_for, request, redirect, flash, jsonify, abort
 from flask import session as login_session
+from flask import g
 import random, string
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
@@ -17,7 +18,12 @@ import json
 from flask import make_response
 import requests
 
+import time
+from redis import Redis
+from functools import update_wrapper
+
 app = Flask(__name__)
+redis = Redis()
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
@@ -28,6 +34,95 @@ Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
+
+
+class RateLimit(object):
+    expiration_window = 10
+    # an extra 10 seconds to expire in redis, so that badly synchronized clocks between workers and
+    # the redis server don't cause any problems
+
+    def __init__(self, key_prefix, limit, per, send_x_headers):
+        self.reset = (int(time.time()) // per) * per + per
+        self.key = key_prefix + str(self.reset)
+        # key is going to represent a string that I use to keep track
+        # of the rate limits from each of the requests
+        # reset is a timestamp indicating when a request limit can
+        # reset itself
+        self.limit = limit
+        self.per = per
+        # limit and per defines the number of requests we want to allow
+        # over a certain time period
+        self.send_x_headers = send_x_headers
+        # a boolean option that will allow us to inject into each
+        # response header the number of remaining requests a client
+        # can make
+        p = redis.pipeline()
+        # use pipeline to make sure we never increment a key
+        # without setting the key expiration
+        p.incr(self.key)
+        p.expireat(self.key, self.reset + self.expiration_window)
+        self.current = min(p.execute()[0], limit)
+
+    remaining = property(lambda x: x.limit - x.current)
+    # how many requests I have left
+    over_limit = property(lambda x: x.current >= x.limit)
+    # whether I hit the rate limit
+
+
+def get_view_rate_limit():
+    return getattr(g, '_view_rate_limit', None)
+# g object in flask
+
+
+def on_over_limit(limit):
+    return jsonify({'data': 'You hit the rate limit','error':'429'}),429
+    # return (jsonify({'data': 'You hit the rate limit','error':'429'}),429)
+    # 429 means too many requests
+
+
+def ratelimit(limit, per=300, send_x_headers=True,
+              over_limit=on_over_limit,
+              scope_func=lambda: request.remote_addr,
+              key_func=lambda: request.endpoint):
+    # define a python decorator
+    def decorator(f):
+        def rate_limited(*args, **kwargs):
+            key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
+            # The key is constructed by default from the remote address
+            # and the current endpoint
+            rlimit = RateLimit(key, limit, per, send_x_headers)
+            # Before the function is executed, it increments the rate limit
+            # with the help of the RateLimit class
+            g._view_rate_limit = rlimit
+            # store the instance in a g object in flask
+            if over_limit is not None and rlimit.over_limit:
+                return over_limit(rlimit)
+                # if rlimit.over_limit, return a different function
+            return f(*args, **kwargs)
+        return update_wrapper(rate_limited, f)
+    return decorator
+
+
+@app.after_request
+def inject_x_rate_headers(response):
+    # append the number of remaining requests, the limit for that endpoint
+    # and the time until the limit resets itself
+    limit = get_view_rate_limit()
+    if limit and limit.send_x_headers:
+        h = response.headers
+        h.add('X-RateLimit-Remaining', str(limit.remaining))
+        h.add('X-RateLimit-Limit', str(limit.limit))
+        h.add('X-RateLimit-Reset', str(limit.reset))
+    return response
+    # this feature can be turned off if the send_x_headers is set to false
+
+
+@app.route('/rate-limited/JSON')
+@ratelimit(limit=3, per=60 * 1)
+# limit is 3 requests per second
+def getItemJSON():
+    items = session.query(Item).all()
+    return jsonify(Items=[i.serialize for i in items])
 
 
 @app.route('/')
@@ -92,6 +187,8 @@ def log_in():
         state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                         for x in xrange(32))
         login_session['state'] = state
+        # Before login_session for a specific user is set up, the state is used for authentication
+        # After the login_session for a specific user is set up, the cookie for a specific user is checked every time
         print "The current session state is %s" % login_session['state']
         return render_template('login.html', STATE=state)
 
