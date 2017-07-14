@@ -514,8 +514,31 @@ def deleteItem(category_id, item_id):
     else:
         return render_template('deleteitem.html', item=deletedItem)
 
+
+@app.route('/hello', methods=["GET", "POST"])
+def hi():
+    if request.method == 'POST':
+        name = request.form["name"]
+        print name
+        return 'Hi, %s!' % name
+    else:
+        return 'Hi, world'
+
+
+@app.route('/jeff')
+def hi_person():
+    form = {"name": "jeff"}
+    response = requests.post("http://localhost:5000/hello", data=form)
+    # response = requests.get("http://localhost:5000/hello")
+    # multiple requests to the server, concurrency needed
+    print response.status_code
+    # return redirect(url_for('hi'))
+    return response.text
+
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
     app.debug = True
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, threaded=True)
     # app.run(host='', port=5000)
+    # In production, run the flask app under a proper WSGI server capable of handling concurrent requests
+    # (perhaps gunicorn or uWSGI) and it'll work.
