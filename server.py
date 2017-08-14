@@ -529,6 +529,8 @@ def hi():
 def hi_person():
     form = {"name": "jeff"}
     response = requests.post("http://localhost:5000/hello", data=form)
+    # This requires parallel paogramming, multiple threads
+    
     # response = requests.get("http://localhost:5000/hello")
     # multiple requests to the server, concurrency needed
     print response.status_code
@@ -539,6 +541,8 @@ if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
     app.debug = True
     app.run(host='0.0.0.0', port=5000, threaded=True)
+    # Multiple threads are provided
+    
     # app.run(host='', port=5000)
     # In production, run the flask app under a proper WSGI server capable of handling concurrent requests
     # (perhaps gunicorn or uWSGI) and it'll work.
